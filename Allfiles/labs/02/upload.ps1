@@ -1,9 +1,21 @@
 Clear-Host
 Write-Host "Starting script at $(Get-Date)"
 
+# Azure 로그인 확인
+try {
+    $subs = Get-AzSubscription | Select-Object
+} catch {
+    Write-Error "Azure login is required. Please run 'Connect-AzAccount' and try again."
+    Exit
+}
+
 # Azure 구독 선택
-$subs = Get-AzSubscription | Select-Object
-if ($subs.GetType().IsArray -and $subs.length -gt 1) {
+if ($subs -eq $null -or $subs.Count -eq 0) {
+    Write-Error "No Azure subscriptions found. Please check your Azure account and try again."
+    Exit
+}
+
+if ($subs.Count -gt 1) {
     Write-Host "You have multiple Azure subscriptions - please select the one you want to use:"
     for ($i = 0; $i -lt $subs.length; $i++) {
         Write-Host "[$($i)]: $($subs[$i].Name) (ID = $($subs[$i].Id))"
@@ -19,6 +31,9 @@ if ($subs.GetType().IsArray -and $subs.length -gt 1) {
     }
     $selectedSub = $subs[$selectedIndex].Id
     Select-AzSubscription -SubscriptionId $selectedSub
+} else {
+    Write-Host "Only one subscription found. Using subscription $($subs[0].Name)"
+    Select-AzSubscription -SubscriptionId $subs[0].Id
 }
 
 # 사용자 입력 받기
