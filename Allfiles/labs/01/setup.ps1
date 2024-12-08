@@ -101,8 +101,15 @@ Write-Host "Loading data..."
 Get-ChildItem "./data/*.txt" -File | ForEach-Object {
     $file = $_.FullName
     $table = $_.Name.Replace(".txt", "")
-    Write-Host "Loading $file into $table..."
-    bcp dbo.$table in $file -S "$synapseWorkspace.sql.azuresynapse.net" -U $sqlUser -P $sqlPassword -d $sqlDatabaseName -q -k -E -b 5000
+    $formatFile = $file.Replace(".txt", ".fmt")
+
+    if (Test-Path $formatFile) {
+        Write-Host "Loading $file into $table using format file $formatFile..."
+        bcp dbo.$table in $file -S "$synapseWorkspace.sql.azuresynapse.net" -U $sqlUser -P $sqlPassword -d $sqlDatabaseName -f $formatFile -q -k -E -b 5000
+    } else {
+        Write-Host "Loading $file into $table without a format file..."
+        bcp dbo.$table in $file -S "$synapseWorkspace.sql.azuresynapse.net" -U $sqlUser -P $sqlPassword -d $sqlDatabaseName -n -q -k -E -b 5000
+    }
 }
 
 # SQL 풀 일시 중지
