@@ -274,7 +274,7 @@ Delta lake supports streaming data. Delta tables can be a *sink* or a *source* f
     from pyspark.sql.functions import *
 
     # Create a folder
-    inputPath = '/data/'
+    inputPath = '/device_data/'
     mssparkutils.fs.mkdirs(inputPath)
 
     # Create a stream that reads data from the folder, using a JSON schema
