@@ -33,14 +33,15 @@ In this exercise, you'll use a combination of a PowerShell script and an ARM tem
 
     ```
     rm -r dp203 -f
-    git clone https://github.com/MicrosoftLearning/dp-203-azure-data-engineer dp203
+    git clone https://github.com/jhjwlee/dp-203-azure-data-engineer dp203
     ```
 
 5. After the repo has been cloned, enter the following commands to change to the folder for this lab and run the **setup.ps1** script it contains:
 
     ```
+    az login
     cd dp203/Allfiles/labs/02
-    ./setup.ps1
+    ./upload.ps1
     ```
 
 6. If prompted, choose which subscription you want to use (this will only happen if you have access to multiple Azure subscriptions).
