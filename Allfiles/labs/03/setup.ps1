@@ -60,15 +60,6 @@ while ($complexPassword -ne 1)
     }
 }
 
-# Register resource providers
-Write-Host "Registering resource providers...";
-$provider_list = "Microsoft.Synapse", "Microsoft.Sql", "Microsoft.Storage", "Microsoft.Compute"
-foreach ($provider in $provider_list){
-    $result = Register-AzResourceProvider -ProviderNamespace $provider
-    $status = $result.RegistrationState
-    Write-Host "$provider : $status"
-}
-
 # Prompt for existing resource group name
 $resourceGroupName = Read-Host "Enter the existing resource group name"
 
