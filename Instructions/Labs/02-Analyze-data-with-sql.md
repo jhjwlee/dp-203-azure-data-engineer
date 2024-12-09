@@ -32,7 +32,7 @@ In this exercise, you'll use a combination of a PowerShell script and an ARM tem
 4. In the PowerShell pane, manually enter the following commands to clone this repo:
 
     ```
-    rm -r dp203 -f
+    rm -r dp-203 -f
     git clone https://github.com/jhjwlee/dp-203-azure-data-engineer dp203
     ```
 
@@ -40,7 +40,7 @@ In this exercise, you'll use a combination of a PowerShell script and an ARM tem
 
     ```
     az login
-    cd dp203/Allfiles/labs/02
+    cd dp-203/Allfiles/labs/02
     ./upload.ps1
     ```
 
