@@ -9,6 +9,7 @@ $suffix = Read-Host "Enter a unique random suffix for Azure resources"
 
 # Upload files
 write-host "Uploading files..."
+$dataLakeAccountName = "datalake$suffix"
 $storageAccount = Get-AzStorageAccount -ResourceGroupName $resourceGroupName -Name $dataLakeAccountName
 $storageContext = $storageAccount.Context
 Get-ChildItem "./data/*.csv" -File | Foreach-Object {
