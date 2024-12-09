@@ -33,7 +33,7 @@ In this exercise, you'll use a combination of a PowerShell script and an ARM tem
 
     ```
     rm -r dp-203 -f
-    git clone https://github.com/jh.jw.lee/dp-203-azure-data-engineer dp-203
+    git clone https://github.com/jhjwlee/dp-203-azure-data-engineer dp-203
     ```
 
 5. After the repo has been cloned, enter the following commands to change to the folder for this exercise and run the **upload.ps1** script it contains:
