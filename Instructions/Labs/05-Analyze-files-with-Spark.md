@@ -39,7 +39,7 @@ In this exercise, you'll use a combination of a PowerShell script and an ARM tem
 
     ```
     cd dp203/Allfiles/labs/05
-    ./upload.ps1
+    ./upload.ps1
     ```
 
 6. If prompted, choose which subscription you want to use (this will only happen if you have access to multiple Azure subscriptions).
