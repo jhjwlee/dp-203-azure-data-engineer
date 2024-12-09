@@ -304,8 +304,8 @@ Delta lake supports streaming data. Delta tables can be a *sink* or a *source* f
 
     ```python
     # Write the stream to a delta table
-    delta_stream_table_path = '/delta/iotdevicedata'
-    checkpointpath = '/delta/checkpoint'
+    delta_stream_table_path = '/delta/iotdevicedata01'
+    checkpointpath = '/delta/checkpoint01'
     deltastream = iotstream.writeStream.format("delta").option("checkpointLocation", checkpointpath).start(delta_stream_table_path)
     print("Streaming to delta sink...")
     ```
