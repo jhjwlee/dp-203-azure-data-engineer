@@ -105,7 +105,7 @@ To load the data in the text file into the database table, you will implement an
         - **Format**: Delimited text
         - **Name**: Products_Csv
         - **Linked service**: synapse*xxxxxxx*-WorkspaceDefaultStorage
-        - **File path**: files/data/Product.csv
+        - **File path**: files/product_data/Product.csv
         - **First row as header**: Selected
         - **Import schema**: From connection/store
     - **Allow schema drift**: Selected
