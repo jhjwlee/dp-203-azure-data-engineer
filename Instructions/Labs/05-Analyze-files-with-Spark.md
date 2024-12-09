@@ -1,7 +1,7 @@
 ---
 lab:
-    title: 'Analyze data in a data lake with Spark'
-    ilt-use: 'Suggested demo'
+    title: 'Analyze data in a data lake with Spark : after Lab 03'
+    ilt-use: 'Suggested demo' - 
 ---
 # Analyze data in a data lake with Spark
 
@@ -35,11 +35,11 @@ In this exercise, you'll use a combination of a PowerShell script and an ARM tem
     git clone  https://github.com/MicrosoftLearning/Dp-203-azure-data-engineer dp203
     ```
 
-5. After the repo has been cloned, enter the following commands to change to the folder for this lab and run the **setup.ps1** script it contains:
+5. After the repo has been cloned, enter the following commands to change to the folder for this lab and run the **upload.ps1** script it contains:
 
     ```
     cd dp203/Allfiles/labs/05
-    ./setup.ps1
+    ./upload.ps1
     ```
 
 6. If prompted, choose which subscription you want to use (this will only happen if you have access to multiple Azure subscriptions).
