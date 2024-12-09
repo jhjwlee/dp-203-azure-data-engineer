@@ -8,16 +8,15 @@ $resourceGroupName = Read-Host "Enter the existing resource group name"
 $suffix = Read-Host "Enter a unique random suffix for Azure resources"
 
 # Upload files
-Write-Host "Loading data..."
-$dataLakeAccountName = "datalake$suffix"
+write-host "Uploading files..."
 $storageAccount = Get-AzStorageAccount -ResourceGroupName $resourceGroupName -Name $dataLakeAccountName
 $storageContext = $storageAccount.Context
-Get-ChildItem "./data/*.csv" -File | ForEach-Object {
-    Write-Host ""
+Get-ChildItem "./data/*.csv" -File | Foreach-Object {
+    write-host ""
     $file = $_.Name
     Write-Host $file
-    $blobPath = "sales/orders/$file"
+    $blobPath = "data/$file"
     Set-AzStorageBlobContent -File $_.FullName -Container "files" -Blob $blobPath -Context $storageContext
 }
 
-Write-Host "Script completed at $(Get-Date)"
+write-host "Script completed at $(Get-Date)"
