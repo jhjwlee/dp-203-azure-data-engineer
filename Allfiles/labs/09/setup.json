@@ -40,7 +40,7 @@
       }
     },
     "variables": {
-      "location": "[resourceGroup().location]",
+      "location": "[variables('location')]",
       "defaultDataLakeStorageFilesystemName": "files",
       "computeSubnetId": "",
       "sqlSKU": "DW100c",
