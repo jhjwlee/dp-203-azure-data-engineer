@@ -1,93 +1,160 @@
 Clear-Host
 Write-Host "Starting script at $(Get-Date)"
 
-# Azure 구독 선택
-$subs = Get-AzSubscription | Select-Object
-if ($subs -eq $null -or $subs.Count -eq 0) {
-    Write-Error "No Azure subscriptions found. Please check your Azure account and try again."
-    Exit
-}
+Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+Install-Module -Name Az.Synapse -Force
 
-if ($subs.Count -gt 1) {
+# Handle cases where the user has multiple subscriptions
+$subs = Get-AzSubscription | Select-Object
+if($subs.GetType().IsArray -and $subs.length -gt 1){
     Write-Host "You have multiple Azure subscriptions - please select the one you want to use:"
-    for ($i = 0; $i -lt $subs.length; $i++) {
-        Write-Host "[$($i)]: $($subs[$i].Name) (ID = $($subs[$i].Id))"
+    for($i = 0; $i -lt $subs.length; $i++)
+    {
+            Write-Host "[$($i)]: $($subs[$i].Name) (ID = $($subs[$i].Id))"
     }
     $selectedIndex = -1
-    while ($selectedIndex -eq -1) {
-        $enteredValue = Read-Host "Enter a subscription number"
-        if ($enteredValue -match "^\d+$" -and [int]$enteredValue -lt $subs.Length) {
-            $selectedIndex = [int]$enteredValue
-        } else {
-            Write-Host "Invalid selection. Please try again."
-        }
+    $selectedValidIndex = 0
+    while ($selectedValidIndex -ne 1)
+    {
+            $enteredValue = Read-Host("Enter 0 to $($subs.Length - 1)")
+            if (-not ([string]::IsNullOrEmpty($enteredValue)))
+            {
+                if ([int]$enteredValue -in (0..$($subs.Length - 1)))
+                {
+                    $selectedIndex = [int]$enteredValue
+                    $selectedValidIndex = 1
+                }
+                else
+                {
+                    Write-Output "Please enter a valid subscription number."
+                }
+            }
+            else
+            {
+                Write-Output "Please enter a valid subscription number."
+            }
     }
     $selectedSub = $subs[$selectedIndex].Id
     Select-AzSubscription -SubscriptionId $selectedSub
-} else {
-    Write-Host "Only one subscription found. Using subscription $($subs[0].Name)"
-    Select-AzSubscription -SubscriptionId $subs[0].Id
+    az account set --subscription $selectedSub
 }
 
-# 리소스 그룹 및 접미사 입력 받기
-$resourceGroupName = Read-Host "Enter the existing Azure resource group name"
-$suffix = Read-Host "Enter the unique suffix for your Azure resources"
+# Prompt user for a password for the SQL Database
+$sqlUser = "SQLUser"
+Write-Host ""
+$sqlPassword = ""
+$complexPassword = 0
 
-# 랜덤 지역 설정
-Write-Host "Selecting a random Azure region..."
-$preferredRegions = "australiaeast", "centralus", "southcentralus", "eastus2", "northeurope", "southeastasia", "uksouth", "westeurope", "westus", "westus2"
+while ($complexPassword -ne 1)
+{
+    $SqlPassword = Read-Host "Enter a password to use for the $sqlUser login.\n    The password must meet complexity requirements:\n     - Minimum 8 characters.\n     - At least one upper case English letter [A-Z]\n     - At least one lower case English letter [a-z]\n     - At least one digit [0-9]\n     - At least one special character (!,@,#,%,^,&,$)\n     "
 
-# Azure 지역 목록 필터링
-$locations = Get-AzLocation | Where-Object { $_.Location -in $preferredRegions }
-if ($locations.Count -eq 0) {
-    Write-Error "No available Azure regions found. Please check your subscription and try again."
-    Exit
+    if(($SqlPassword -cmatch '[a-z]') -and ($SqlPassword -cmatch '[A-Z]') -and ($SqlPassword -match '\d') -and ($SqlPassword.length -ge 8) -and ($SqlPassword -match '!|@|#|%|\^|&|\$'))
+    {
+        $complexPassword = 1
+        Write-Output "Password $SqlPassword accepted. Make sure you remember this!"
+    }
+    else
+    {
+        Write-Output "$SqlPassword does not meet the complexity requirements."
+    }
 }
 
-# 무작위 지역 선택
-$randomIndex = Get-Random -Minimum 0 -Maximum $locations.Count
-$Region = $locations[$randomIndex].Location
-Write-Host "Selected random region: $Region"
+# Register resource providers
+Write-Host "Registering resource providers...";
+$provider_list = "Microsoft.Synapse", "Microsoft.Sql", "Microsoft.Storage", "Microsoft.Compute"
+foreach ($provider in $provider_list){
+    $result = Register-AzResourceProvider -ProviderNamespace $provider
+    $status = $result.RegistrationState
+    Write-Host "$provider : $status"
+}
 
-# 스토리지 계정 이름 및 컨텍스트 설정
+# Prompt for existing resource group name
+$resourceGroupName = Read-Host "Enter the existing resource group name"
+
+# Prompt for a unique random suffix
+$suffix = Read-Host "Enter a unique random suffix for Azure resources"
+
+# Choose a random region
+Write-Host "Finding an available region. This may take several minutes...";
+$delay = 0, 30, 60, 90, 120 | Get-Random
+Start-Sleep -Seconds $delay # random delay to stagger requests from multi-student classes
+$preferred_list = "australiaeast","centralus","southcentralus","eastus2","northeurope","southeastasia","uksouth","westeurope","westus","westus2"
+$locations = Get-AzLocation | Where-Object {
+    $_.Providers -contains "Microsoft.Synapse" -and
+    $_.Providers -contains "Microsoft.Sql" -and
+    $_.Providers -contains "Microsoft.Storage" -and
+    $_.Providers -contains "Microsoft.Compute" -and
+    $_.Location -in $preferred_list
+}
+$max_index = $locations.Count - 1
+$rand = (0..$max_index) | Get-Random
+$Region = $locations.Get($rand).Location
+
+# Test for subscription Azure SQL capacity constraints in randomly selected regions
+$success = 0
+$tried_list = New-Object Collections.Generic.List[string]
+
+while ($success -ne 1){
+    Write-Host "Trying $Region"
+    $capability = Get-AzSqlCapability -LocationName $Region
+    if($capability.Status -eq "Available")
+    {
+        $success = 1
+        Write-Host "Using $Region"
+    }
+    else
+    {
+        $success = 0
+        $tried_list.Add($Region)
+        $locations = $locations | Where-Object {$_.Location -notin $tried_list}
+        if ($locations.Count -ne 1)
+        {
+            $rand = (0..$($locations.Count - 1)) | Get-Random
+            $Region = $locations.Get($rand).Location
+        }
+        else {
+            Write-Host "Couldn't find an available region for deployment."
+            Write-Host "Sorry! Try again later."
+            Exit
+        }
+    }
+}
+
+# Create Synapse workspace
+$synapseWorkspace = "synapse$suffix"
 $dataLakeAccountName = "datalake$suffix"
 
-# 스토리지 계정 확인
-try {
-    $storageAccount = Get-AzStorageAccount -ResourceGroupName $resourceGroupName -Name $dataLakeAccountName -ErrorAction Stop
-    $storageContext = $storageAccount.Context
-    Write-Host "Storage account found: $dataLakeAccountName in $resourceGroupName"
-} catch {
-    Write-Error "Storage account $dataLakeAccountName not found in resource group $resourceGroupName. Please check the values and try again."
-    Exit
-}
+Write-Host "Creating $synapseWorkspace Synapse Analytics workspace in $resourceGroupName resource group..."
+Write-Host "(This may take some time!)"
+New-AzResourceGroupDeployment -ResourceGroupName $resourceGroupName `
+  -TemplateFile "setup.json" `
+  -Mode Complete `
+  -workspaceName $synapseWorkspace `
+  -dataLakeAccountName $dataLakeAccountName `
+  -sqlUser $sqlUser `
+  -sqlPassword $sqlPassword `
+  -uniqueSuffix $suffix `
+  -Force
 
-# 파일 업로드
-Write-Host "Uploading files to Azure Storage..."
+# Make the current user and the Synapse service principal owners of the data lake blob store
+Write-Host "Granting permissions on the $dataLakeAccountName storage account..."
+Write-Host "(you can ignore any warnings!)"
+$subscriptionId = (Get-AzContext).Subscription.Id
+$userName = ((az ad signed-in-user show) | ConvertFrom-JSON).UserPrincipalName
+$id = (Get-AzADServicePrincipal -DisplayName $synapseWorkspace).id
+New-AzRoleAssignment -Objectid $id -RoleDefinitionName "Storage Blob Data Owner" -Scope "/subscriptions/$subscriptionId/resourceGroups/$resourceGroupName/providers/Microsoft.Storage/storageAccounts/$dataLakeAccountName" -ErrorAction SilentlyContinue;
+New-AzRoleAssignment -SignInName $userName -RoleDefinitionName "Storage Blob Data Owner" -Scope "/subscriptions/$subscriptionId/resourceGroups/$resourceGroupName/providers/Microsoft.Storage/storageAccounts/$dataLakeAccountName" -ErrorAction SilentlyContinue;
 
-# CSV 파일 업로드
+# Upload files
+Write-Host "Loading data..."
+$storageAccount = Get-AzStorageAccount -ResourceGroupName $resourceGroupName -Name $dataLakeAccountName
+$storageContext = $storageAccount.Context
 Get-ChildItem "./data/*.csv" -File | ForEach-Object {
+    Write-Host ""
     $file = $_.Name
+    Write-Host $file
     $blobPath = "sales/csv/$file"
-    Write-Host "Uploading $file to $blobPath ..."
-    Set-AzStorageBlobContent -File $_.FullName -Container "files" -Blob $blobPath -Context $storageContext
-}
-
-# Parquet 파일 업로드
-Get-ChildItem "./data/*.parquet" -File | ForEach-Object {
-    $file = $_.Name
-    $folder = $_.Name.Replace(".snappy.parquet", "")
-    $newFileName = "orders$($folder).snappy.parquet"
-    $blobPath = "sales/parquet/year=$folder/$newFileName"
-    Write-Host "Uploading $file to $blobPath ..."
-    Set-AzStorageBlobContent -File $_.FullName -Container "files" -Blob $blobPath -Context $storageContext
-}
-
-# JSON 파일 업로드
-Get-ChildItem "./data/*.json" -File | ForEach-Object {
-    $file = $_.Name
-    $blobPath = "sales/json/$file"
-    Write-Host "Uploading $file to $blobPath ..."
     Set-AzStorageBlobContent -File $_.FullName -Container "files" -Blob $blobPath -Context $storageContext
 }
 
