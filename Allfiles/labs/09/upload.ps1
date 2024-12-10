@@ -7,6 +7,14 @@ $resourceGroupName = Read-Host "Enter the existing resource group name"
 # Prompt for a unique random suffix
 $suffix = Read-Host "Enter a unique random suffix for Azure resources"
 
+# Create database
+write-host "Creating the $sqlDatabaseName database..."
+#not supported
+#sqlcmd -S "$synapseWorkspace.sql.azuresynapse.net" -U $sqlUser -P $sqlPassword -d master -Q "CREATE DATABASE [$sqlDatabaseName]"
+
+# using Update-AzSynapseSqlPool
+Update-AzSynapseSqlPool -WorkspaceName $synapseWorkspace -Name $sqlDatabaseName -PerformanceLevel "DW100c" -ResourceGroupName $resourceGroupName
+
 # Resume SQL Pool
 write-host "Pausing the $sqlDatabaseName SQL Pool..."
 Resume-AzSynapseSqlPool -WorkspaceName $synapseWorkspace -Name $sqlDatabaseName -AsJob
