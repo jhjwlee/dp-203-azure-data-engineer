@@ -1,5 +1,5 @@
 Clear-Host
-write-host "Starting script at $(Get-Date)"
+Write-Host "Starting script at $(Get-Date)"
 
 Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
 Install-Module -Name Az.Synapse -Force
@@ -39,6 +39,9 @@ if($subs.GetType().IsArray -and $subs.length -gt 1){
         az account set --subscription $selectedSub
 }
 
+# Prompt user for a resource group
+$resourceGroupName = Read-Host "Enter the existing resource group name"
+
 # Prompt user for a password for the SQL Database
 $sqlUser = "SQLUser"
 write-host ""
@@ -59,7 +62,7 @@ while ($complexPassword -ne 1)
     if(($SqlPassword -cmatch '[a-z]') -and ($SqlPassword -cmatch '[A-Z]') -and ($SqlPassword -match '\d') -and ($SqlPassword.length -ge 8) -and ($SqlPassword -match '!|@|#|%|\^|&|\$'))
     {
         $complexPassword = 1
-	    Write-Output "Password $SqlPassword accepted. Make sure you remember this!"
+        Write-Output "Password $SqlPassword accepted. Make sure you remember this!"
     }
     else
     {
@@ -67,84 +70,17 @@ while ($complexPassword -ne 1)
     }
 }
 
-# Register resource providers
-#Write-Host "Registering resource providers...";
-#$provider_list = "Microsoft.Synapse", "Microsoft.Sql", "Microsoft.Storage", "Microsoft.Compute"
-#foreach ($provider in $provider_list){
-#    $result = Register-AzResourceProvider -ProviderNamespace $provider
-#    $status = $result.RegistrationState
-#    Write-Host "$provider : $status"
-#}
-
 # Generate unique random suffix
-#[string]$suffix =  -join ((48..57) + (97..122) | Get-Random -Count 7 | % {[char]$_})
-#Write-Host "Your randomly-generated suffix for Azure resources is $suffix"
-#$resourceGroupName = "dp203-$suffix"
-
-#----- user input: resource grp name, suffix -----
-# Prompt for existing resource group name
-$resourceGroupName = Read-Host "Enter the existing resource group name"
-
-# Prompt for a unique random suffix
-$suffix = Read-Host "Enter a unique random suffix for Azure resources"
-#------------------------------------------------
-
-# Choose a random region
-Write-Host "Finding an available region. This may take several minutes...";
-$delay = 0, 30, 60 | Get-Random
-Start-Sleep -Seconds $delay # random delay to stagger requests from multi-student classes
-$preferred_list = "australiaeast","centralus","southcentralus","eastus2","northeurope","southeastasia","uksouth","westeurope","westus","westus2"
-$locations = Get-AzLocation | Where-Object {
-    $_.Providers -contains "Microsoft.Synapse" -and
-    $_.Providers -contains "Microsoft.Sql" -and
-    $_.Providers -contains "Microsoft.Storage" -and
-    $_.Providers -contains "Microsoft.Compute" -and
-    $_.Location -in $preferred_list
-}
-$max_index = $locations.Count - 1
-$rand = (0..$max_index) | Get-Random
-$Region = $locations.Get($rand).Location
-
-# Test for subscription Azure SQL capacity constraints in randomly selected regions
-# (for some subsription types, quotas are adjusted dynamically based on capacity)
- $success = 0
- $tried_list = New-Object Collections.Generic.List[string]
-
- while ($success -ne 1){
-    write-host "Trying $Region"
-    $capability = Get-AzSqlCapability -LocationName $Region
-    if($capability.Status -eq "Available")
-    {
-        $success = 1
-        write-host "Using $Region"
-    }
-    else
-    {
-        $success = 0
-        $tried_list.Add($Region)
-        $locations = $locations | Where-Object {$_.Location -notin $tried_list}
-        if ($locations.Count -ne 1)
-        {
-            $rand = (0..$($locations.Count - 1)) | Get-Random
-            $Region = $locations.Get($rand).Location
-        }
-        else {
-            Write-Host "Couldn't find an available region for deployment."
-            Write-Host "Sorry! Try again later."
-            Exit
-        }
-    }
-}
-# Write-Host "Creating $resourceGroupName resource group in $Region ..."
-# New-AzResourceGroup -Name $resourceGroupName -Location $Region | Out-Null
+[string]$suffix =  -join ((48..57) + (97..122) | Get-Random -Count 7 | % {[char]$_})
+Write-Host "Your randomly-generated suffix for Azure resources is $suffix"
 
 # Create Synapse workspace
 $synapseWorkspace = "synapse$suffix"
 $dataLakeAccountName = "datalake$suffix"
-$sqlDatabaseName = "sql$suffix"
+sqlDatabaseName = "sql$suffix"
 
-write-host "Creating $synapseWorkspace Synapse Analytics workspace in $resourceGroupName resource group..."
-write-host "(This may take some time!)"
+Write-Host "Creating $synapseWorkspace Synapse Analytics workspace in $resourceGroupName resource group..."
+Write-Host "(This may take some time!)"
 New-AzResourceGroupDeployment -ResourceGroupName $resourceGroupName `
   -TemplateFile "setup.json" `
   -Mode Complete `
@@ -191,7 +127,7 @@ Get-ChildItem "./data/*.csv" -File | Foreach-Object {
 }
 
 # Pause SQL Pool
-write-host "Pausing the $sqlDatabaseName SQL Pool..."
-Suspend-AzSynapseSqlPool -WorkspaceName $synapseWorkspace -Name $sqlDatabaseName -AsJob
+#write-host "Pausing the $sqlDatabaseName SQL Pool..."
+#Suspend-AzSynapseSqlPool -WorkspaceName $synapseWorkspace -Name $sqlDatabaseName -AsJob
 
 write-host "Script completed at $(Get-Date)"
