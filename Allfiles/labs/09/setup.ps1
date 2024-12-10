@@ -77,7 +77,7 @@ Write-Host "Your randomly-generated suffix for Azure resources is $suffix"
 # Create Synapse workspace
 $synapseWorkspace = "synapse$suffix"
 $dataLakeAccountName = "datalake$suffix"
-sqlDatabaseName = "sql$suffix"
+$sqlDatabaseName = "sql$suffix"
 
 Write-Host "Creating $synapseWorkspace Synapse Analytics workspace in $resourceGroupName resource group..."
 Write-Host "(This may take some time!)"
@@ -103,7 +103,7 @@ New-AzRoleAssignment -SignInName $userName -RoleDefinitionName "Storage Blob Dat
 
 # Create database
 write-host "Creating the $sqlDatabaseName database..."
-sqlcmd -S "$synapseWorkspace.sql.azuresynapse.net" -U $sqlUser -P $sqlPassword -d $sqlDatabaseName -I -i setup.sql
+sqlcmd -S "$synapseWorkspace.sql.azuresynapse.net" -U $sqlUser -P $sqlPassword -d master -Q "CREATE DATABASE [$sqlDatabaseName]"
 
 # Load data
 write-host "Loading data..."
