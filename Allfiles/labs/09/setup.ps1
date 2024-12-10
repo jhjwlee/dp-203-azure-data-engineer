@@ -127,7 +127,7 @@ Get-ChildItem "./data/*.csv" -File | Foreach-Object {
 }
 
 # Pause SQL Pool
-#write-host "Pausing the $sqlDatabaseName SQL Pool..."
-#Suspend-AzSynapseSqlPool -WorkspaceName $synapseWorkspace -Name $sqlDatabaseName -AsJob
+write-host "Pausing the $sqlDatabaseName SQL Pool..."
+Suspend-AzSynapseSqlPool -WorkspaceName $synapseWorkspace -Name $sqlDatabaseName -AsJob
 
 write-host "Script completed at $(Get-Date)"
