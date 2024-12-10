@@ -31,7 +31,7 @@ To explore Azure Synapse Link for Azure Cosmos DB, you'll need an Azure Synapse 
 
     ```
     rm -r dp-203 -f
-    git clone https://github.com/jhjwlee/dp-203-azure-data-engineer dp-203
+    git clone https://github.com/jhjwlee/dp-203-azure-data-engineer dp-203
     ```
 
 5. After the repo has been cloned, enter the following commands to change to the folder for this exercise and run the **setup.ps1** script it contains:
