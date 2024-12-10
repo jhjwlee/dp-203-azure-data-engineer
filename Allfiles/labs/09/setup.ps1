@@ -103,7 +103,11 @@ New-AzRoleAssignment -SignInName $userName -RoleDefinitionName "Storage Blob Dat
 
 # Create database
 write-host "Creating the $sqlDatabaseName database..."
-sqlcmd -S "$synapseWorkspace.sql.azuresynapse.net" -U $sqlUser -P $sqlPassword -d master -Q "CREATE DATABASE [$sqlDatabaseName]"
+#not supported
+#sqlcmd -S "$synapseWorkspace.sql.azuresynapse.net" -U $sqlUser -P $sqlPassword -d master -Q "CREATE DATABASE [$sqlDatabaseName]"
+
+# using New-AzSynapseSqlPool
+New-AzSynapseSqlPool -WorkspaceName $synapseWorkspace -Name $sqlDatabaseName -PerformanceLevel "DW100c" -ResourceGroupName $resourceGroupName
 
 # Load data
 write-host "Loading data..."
