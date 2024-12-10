@@ -1,7 +1,7 @@
 Clear-Host
 Write-Host "Starting script at $(Get-Date)"
 
-# Azure 모듈 설치
+# Azure Synapse 모듈 설치
 Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
 Install-Module -Name Az.Synapse -Force
 
@@ -36,22 +36,17 @@ while ($complexPassword -ne 1) {
     }
 }
 
-# 리소스 등록
-Write-Host "Registering resource providers..."
-$provider_list = "Microsoft.Synapse", "Microsoft.Sql", "Microsoft.Storage", "Microsoft.Compute"
-foreach ($provider in $provider_list) {
-    Register-AzResourceProvider -ProviderNamespace $provider | Out-Null
-    Write-Host "$provider registered."
-}
-
 # 자원 이름 설정
 $synapseWorkspace = "synapse$suffix"
 $dataLakeAccountName = "datalake$suffix"
 $sqlDatabaseName = "sql$suffix"
 
-# 리소스 그룹 생성
-Write-Host "Creating $resourceGroupName resource group..."
-New-AzResourceGroup -Name $resourceGroupName -Location "eastus" | Out-Null
+# 리소스 그룹 유효성 검증
+$resourceGroup = Get-AzResourceGroup -Name $resourceGroupName -ErrorAction SilentlyContinue
+if (-not $resourceGroup) {
+    Write-Host "Resource group $resourceGroupName not found. Please create it first." -ForegroundColor Red
+    Exit
+}
 
 # Synapse 작업 영역 생성
 Write-Host "Creating $synapseWorkspace Synapse Analytics workspace in $resourceGroupName..."
