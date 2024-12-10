@@ -42,15 +42,6 @@ if($subs.GetType().IsArray -and $subs.length -gt 1){
 # Prompt user for a resource group
 $resourceGroupName = Read-Host "Enter the existing resource group name"
 
-# Validate resource group existence
-try {
-    $resourceGroup = Get-AzResourceGroup -Name $resourceGroupName -ErrorAction Stop
-    Write-Host "Resource group '$resourceGroupName' found."
-} catch {
-    Write-Host "Resource group '$resourceGroupName' does not exist. Please create it first and try again."
-    exit
-}
-
 # Prompt user for a password for the SQL Database
 $sqlUser = "SQLUser"
 write-host ""
@@ -100,3 +91,43 @@ New-AzResourceGroupDeployment -ResourceGroupName $resourceGroupName `
   -sqlUser $sqlUser `
   -sqlPassword $sqlPassword `
   -Force
+
+# Make the current user and the Synapse service principal owners of the data lake blob store
+write-host "Granting permissions on the $dataLakeAccountName storage account..."
+write-host "(you can ignore any warnings!)"
+$subscriptionId = (Get-AzContext).Subscription.Id
+$userName = ((az ad signed-in-user show) | ConvertFrom-JSON).UserPrincipalName
+$id = (Get-AzADServicePrincipal -DisplayName $synapseWorkspace).id
+New-AzRoleAssignment -Objectid $id -RoleDefinitionName "Storage Blob Data Owner" -Scope "/subscriptions/$subscriptionId/resourceGroups/$resourceGroupName/providers/Microsoft.Storage/storageAccounts/$dataLakeAccountName" -ErrorAction SilentlyContinue;
+New-AzRoleAssignment -SignInName $userName -RoleDefinitionName "Storage Blob Data Owner" -Scope "/subscriptions/$subscriptionId/resourceGroups/$resourceGroupName/providers/Microsoft.Storage/storageAccounts/$dataLakeAccountName" -ErrorAction SilentlyContinue;
+
+# Create database
+write-host "Creating the $sqlDatabaseName database..."
+sqlcmd -S "$synapseWorkspace.sql.azuresynapse.net" -U $sqlUser -P $sqlPassword -d $sqlDatabaseName -I -i setup.sql
+
+# Load data
+write-host "Loading data..."
+Get-ChildItem "./data/*.txt" -File | Foreach-Object {
+    write-host ""
+    $file = $_.FullName
+    Write-Host "$file"
+    $table = $_.Name.Replace(".txt","")
+    bcp dbo.$table in $file -S "$synapseWorkspace.sql.azuresynapse.net" -U $sqlUser -P $sqlPassword -d $sqlDatabaseName -f $file.Replace("txt", "fmt") -q -k -E -b 5000
+}
+# Upload files
+write-host "Uploading files..."
+$storageAccount = Get-AzStorageAccount -ResourceGroupName $resourceGroupName -Name $dataLakeAccountName
+$storageContext = $storageAccount.Context
+Get-ChildItem "./data/*.csv" -File | Foreach-Object {
+    write-host ""
+    $file = $_.Name
+    Write-Host $file
+    $blobPath = "data/$file"
+    Set-AzStorageBlobContent -File $_.FullName -Container "files" -Blob $blobPath -Context $storageContext
+}
+
+# Pause SQL Pool
+#write-host "Pausing the $sqlDatabaseName SQL Pool..."
+#Suspend-AzSynapseSqlPool -WorkspaceName $synapseWorkspace -Name $sqlDatabaseName -AsJob
+
+write-host "Script completed at $(Get-Date)"
