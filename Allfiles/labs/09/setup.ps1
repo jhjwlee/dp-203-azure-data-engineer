@@ -79,18 +79,19 @@ $synapseWorkspace = "synapse$suffix"
 $dataLakeAccountName = "datalake$suffix"
 $sqlDatabaseName = "sql$suffix"
 
-Write-Host "Creating $synapseWorkspace Synapse Analytics workspace in $resourceGroupName resource group..."
-Write-Host "(This may take some time!)"
+# Synapse 작업 영역 생성
+Write-Host "Creating $synapseWorkspace Synapse Analytics workspace in $resourceGroupName..."
 New-AzResourceGroupDeployment -ResourceGroupName $resourceGroupName `
-  -TemplateFile "setup.json" `
-  -Mode Complete `
-  -uniqueSuffix $suffix `
-  -workspaceName $synapseWorkspace `
-  -dataLakeAccountName $dataLakeAccountName `
-  -sqlDatabaseName $sqlDatabaseName `
-  -sqlUser $sqlUser `
-  -sqlPassword $sqlPassword `
-  -Force
+    -TemplateFile "setup.json" `
+    -Mode Complete `
+    -uniqueSuffix $suffix `
+    -workspaceName $synapseWorkspace `
+    -dataLakeAccountName $dataLakeAccountName `
+    -sqlDatabaseName $sqlDatabaseName `
+    -sqlUser $sqlUser `
+    -sqlPassword $sqlPassword `
+    -Force
+
 
 # Make the current user and the Synapse service principal owners of the data lake blob store
 write-host "Granting permissions on the $dataLakeAccountName storage account..."
