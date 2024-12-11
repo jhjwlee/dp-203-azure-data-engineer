@@ -70,6 +70,30 @@ The source data for this exercise is a text file containing product data. The de
 11. In the **Data** page, on the **Workspace** tab, expand **SQL database**, your **sql*xxxxxxx* (SQL)** database, and its **Tables**.
 12. Select the **dbo.DimProduct** table. Then in its **...** menu, select **New SQL script** > **Select TOP 100 rows**; which will run a query that returns the product data from the table - there should be a single row.
 
+```SQL
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ CREATE TABLE [dbo].[DimProduct](
+    [ProductKey] [int] IDENTITY NOT NULL,
+    [ProductAltKey] [nvarchar](30) NULL,
+    [ProductName] [nvarchar](50) NULL,
+    [Color] [nvarchar](30) NULL,
+    [Size] [nvarchar](50) NULL,
+    [ListPrice] [money] NULL,
+    [Discontinued] [bit] NULL)
+WITH
+(
+	DISTRIBUTION = HASH(ProductAltKey),
+	CLUSTERED COLUMNSTORE INDEX
+);
+GO
+
+INSERT DimProduct
+VALUES('AR-5381','Adjustable Race','Red',NULL,1.99,0);
+GO
+```
 ## Implement a pipeline
 
 To load the data in the text file into the database table, you will implement an Azure Synapse Analytics pipeline that contains a dataflow encapsulating the logic to ingest the data from the text file, lookup the surrogate **ProductKey** column for products that already exist in the database, and then insert or update rows in the table accordingly.
