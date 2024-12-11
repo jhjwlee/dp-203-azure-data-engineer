@@ -102,12 +102,32 @@ New-AzRoleAssignment -Objectid $id -RoleDefinitionName "Storage Blob Data Owner"
 New-AzRoleAssignment -SignInName $userName -RoleDefinitionName "Storage Blob Data Owner" -Scope "/subscriptions/$subscriptionId/resourceGroups/$resourceGroupName/providers/Microsoft.Storage/storageAccounts/$dataLakeAccountName" -ErrorAction SilentlyContinue;
 
 # Create database
-write-host "Creating the $sqlDatabaseName database..."
-#not supported
-#sqlcmd -S "$synapseWorkspace.sql.azuresynapse.net" -U $sqlUser -P $sqlPassword -d master -Q "CREATE DATABASE [$sqlDatabaseName]"
+# write-host "Creating the $sqlDatabaseName database..."
+# not supported
+# sqlcmd -S "$synapseWorkspace.sql.azuresynapse.net" -U $sqlUser -P $sqlPassword -d master -Q "CREATE DATABASE [$sqlDatabaseName]"
 
 # using Update-AzSynapseSqlPool
-Update-AzSynapseSqlPool -WorkspaceName $synapseWorkspace -Name $sqlDatabaseName -PerformanceLevel "DW100c" -ResourceGroupName $resourceGroupName
+#Update-AzSynapseSqlPool -WorkspaceName $synapseWorkspace -Name $sqlDatabaseName -PerformanceLevel "DW100c" -ResourceGroupName $resourceGroupName
+
+#####
+# SQL 풀 생성
+
+# Write-Host "Creating the $sqlDatabaseName dedicated SQL pool..."
+# New-AzSynapseSqlPool -WorkspaceName $synapseWorkspace -Name $sqlDatabaseName -PerformanceLevel "DW100c" -ResourceGroupName $resourceGroupName
+
+# New-... 이 에러일 경우 update 하도록 코드 수정
+# SQL 풀 생성 또는 업데이트
+Write-Host "Checking if $sqlDatabaseName SQL pool exists..."
+$sqlPool = Get-AzSynapseSqlPool -ResourceGroupName $resourceGroupName -WorkspaceName $synapseWorkspace -Name $sqlDatabaseName -ErrorAction SilentlyContinue
+
+if ($sqlPool) {
+    Write-Host "SQL Pool $sqlDatabaseName already exists. Updating existing SQL pool..." -ForegroundColor Yellow
+    Update-AzSynapseSqlPool -ResourceGroupName $resourceGroupName -WorkspaceName $synapseWorkspace -Name $sqlDatabaseName -PerformanceLevel "DW100c"
+} else {
+    Write-Host "Creating new SQL Pool $sqlDatabaseName..."
+    New-AzSynapseSqlPool -WorkspaceName $synapseWorkspace -Name $sqlDatabaseName -PerformanceLevel "DW100c" -ResourceGroupName $resourceGroupName
+}
+
 
 # Load data
 write-host "Loading data..."
